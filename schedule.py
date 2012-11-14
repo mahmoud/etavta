@@ -49,30 +49,65 @@ EXPRESS_NONSTOP_STATIONS = ["Children's Discovery Museum", 'Virginia',
 
 _punct_re = re.compile(r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+')
 
+def punct_split_lower(text):
+    return [w for w in _punct_re.split(text.lower()) if w]
 
 def slugify(text, delim='_'):
-    result = []
-    for word in _punct_re.split(text.lower()):
-        if word:
-            result.append(word)
-    return unicode(delim.join(result))
+    return unicode(delim.join(punct_split_lower(text)))
+
+class FuzzyMatcher(object):
+    def __init__(self, candidates):
+        candidates = list(candidates)
+        self.candidates = candidates
+        cand_tokens = [punct_split_lower(c) for c in candidates]
+        token_map = defaultdict(set)
+        for cand, t_list in zip(candidates, cand_tokens):
+            for i in range(len(t_list) + 1):
+                for j in range(i):
+                    cur_token = ''.join(t_list[j:i])
+                    if cur_token:
+                        token_map[cur_token].add(cand)
+
+        full_prefix_map = defaultdict(set)
+        for pref, matches in token_map.items():
+            for i in range(len(pref)):
+                full_prefix_map[pref[:i + 1]].update(matches)
+
+        self.full_prefix_map = dict(full_prefix_map)
+        self.token_map = dict(token_map)
+        self.unique_prefix_map = dict([(p, list(cnd)[0]) for p, cnd
+                                       in full_prefix_map.items() if len(cnd) == 1])
+        self.unique_token_map = dict([(ct, list(cnd)[0]) for ct, cnd
+                                      in token_map.items() if len(cnd) == 1])
+
+    def __getitem__(self, in_str):
+        if not in_str:
+            raise KeyError('FuzzyMatcher expected non-empty unicode string.')
+        in_slug = slugify(in_str, '')
+        match = self.full_prefix_map[in_slug]
+        if len(match) == 1:
+            return list(match)[0]
+        else:
+            raise KeyError('multiple matching values for ' + str(in_str))
+
+    def find(self, in_str):
+        if not in_str:
+            raise KeyError('FuzzyMatcher expected non-empty unicode string.')
+        in_slug = slugify(in_str, '')
+        return list(self.full_prefix_map.get(in_slug, []))
+
+    def extended_find(self, in_str):
+        ret = []
+        tokens = punct_split_lower(in_str)
+        for i, t in enumerate(tokens):
+            search_str = ''.join(tokens[:i + 1])
+            ret = self.full_prefix_map.get(search_str, [])
+            if len(ret) == 1:
+                break
+        return list(ret)
 
 
-def get_canonical_station_name(in_name):
-    in_slug = slugify(in_name)
-
-    matches = [ s for s in ALL_STATIONS if in_slug[:len(slugify(s))] in slugify(s) ]
-    if not matches:
-        matches = [ s for s in ALL_STATIONS if slugify(s).startswith(in_slug[:6]) ] # TODO
-    if len(matches) == 1:
-        out_name = matches[0]
-    elif not matches:
-        raise ValueError('no stations found matching "' + in_name + '"')
-    else:
-        raise ValueError('multiple stations found matching "' + in_name + '"')
-    #substr_matches = [ s for s in ALL_STATIONS if in_name.lower()[:len(s)] in s.lower()[:len(in_name)] ]
-
-    return out_name
+fm = FuzzyMatcher(ALL_STATIONS)
 
 
 def get_interstitial_stations(s1, s2):
@@ -145,9 +180,10 @@ class Route(object):
         self.stations = tuple(stations)
 
     def __repr__(self):
-        return "Route('{}', '{}', '{}')".format(self.name,
-                                                self.direction,
-                                                self.day)
+        tmpl = "Route('{}', '{}', '{}')"
+        return tmpl.format(self.name,
+                           self.direction,
+                           self.day)
 
 
 def parse_stop_time(time_str):
@@ -173,7 +209,7 @@ def get_route_day_name(day_num):
 
 class Schedule(object):
     def __init__(self, timetables):
-        timetables = list(timetables)
+        self.timetables = list(timetables)
         self.routes = [ t.route for t in timetables ]
         self.stations = set(chain.from_iterable([r.stations for r in self.routes]))
 
@@ -250,7 +286,8 @@ class Schedule(object):
                                 minutes=start_time.minute)
         ret = {}
         for direction in (NORTH, SOUTH):
-            ret[direction] = [ t[station] for t in self.station_dict[station]
+            ret[direction] = [ ConcreteStop(t, t[station], start_time)
+                               for t in self.station_dict[station]
                                if t[station].stop_time > start_td
                                and t.route.direction == direction ][:count]
         return ret
@@ -285,7 +322,11 @@ class Timetable(object):
                 break  # eat blank line separating station names from timetable
             s_name, _, f_name = [n.strip() for n in line.partition('\t')]
             if not s_name.startswith('LVE'):
-                short_map[s_name.strip()] = Station(get_canonical_station_name(f_name.strip()))
+                station_names = fm.extended_find(f_name.strip())
+                if not station_names or len(station_names) > 1:
+                    raise ValueError('Could not find station with name: ' +
+                                     f_name.strip())
+                short_map[s_name.strip()] = Station(station_names[0])
         stations = []
         for s1, s2 in zip(short_map.values(), short_map.values()[1:]):
             stations.append(s1)
@@ -428,6 +469,29 @@ class Train(OrderedDict):
         return is_express(self.known_stations)
 
 
+class ConcreteStop(object):
+    def __init__(self, train, stop, start_dt):
+        self.train = train
+        self.route = train.route
+
+        st = stop.stop_time
+        offset_date = start_dt.date() - dt.timedelta(days=start_dt.weekday())
+        offset_time = dt.datetime.utcfromtimestamp(st.total_seconds()).time()
+
+        self.stop_time = dt.datetime.combine(offset_date, offset_time)
+        self.station = stop.station
+        self.dest = train.stops[-1]
+        self.is_express = train.is_express
+
+    def __repr__(self):
+        tmpl = "ConcreteStop('{}', '{} {}', '{}', '{}')"
+        return tmpl.format(self.station,
+                           self.route.name,
+                           self.route.direction,
+                           self.dest.station,
+                           self.stop_time)
+
+
 class Stop(object):
     """
     TODO: repr's still not perfect, because the constructor
@@ -479,7 +543,7 @@ class Stop(object):
 
 if __name__ == '__main__':
     try:
-        #sched1 = Timetable.from_file('raw_schedules/SC_901NO_WK.tdl')
+        sched1 = Timetable.from_file('raw_schedules/SC_901NO_WK.tdl')
         #sched2 = Timetable.from_file('raw_schedules/SC_902NO_WK.tdl')
         #sched3 = Timetable.from_file('raw_schedules/SC_902SO_WK.tdl')
 
@@ -492,4 +556,4 @@ if __name__ == '__main__':
     except Exception as e:
         import pdb;pdb.post_mortem()
         raise
-    #import pdb;pdb.set_trace()
+    import pdb;pdb.set_trace()
