@@ -15,10 +15,10 @@ from mako.lookup import TemplateLookup
 from workles import WorklesBase, Route
 from schedule import Schedule, fm
 
-def home(*a, **kw):
+def home():
     return Response('hi')
 
-def get_stops(app, req, station_name, *a, **kw):
+def get_stops(name_index, station_name):
     station_name = app.plugins.name_index[station_name]
     content = pformat(app.plugins.schedule.get_stops(station_name))
     return {'content': content}
@@ -38,14 +38,14 @@ def create_app(schedule_dir, template_dir, with_static=True):
             return Response(tmpl.render(**context_dict), mimetype='text/html')
         return render_mako_response
 
-    routes = [Route('/', home, mako_response('base.html')),
-              Route('/<path:station_name>', get_stops, mako_response('base.html')),
+    routes = [Route('/', home, 'base.html'),
+              Route('/<path:station_name>', get_stops, 'base.html'),
               Rule('/favicon.ico', endpoint=not_found)]
 
     app = WorklesBase(routes, {
         'schedule': Schedule.from_directory('raw_schedules'),
         'name_index': fm
-    })
+    }, mako_response)
     if with_static:
         app.__call__ = SharedDataMiddleware(app.__call__, {
             '/static':  os.path.join(os.path.dirname(__file__), 'static')
