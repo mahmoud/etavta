@@ -12,15 +12,16 @@ from werkzeug.utils import redirect
 import mako
 from mako.lookup import TemplateLookup
 
-from workles import WorklesBase, Route
+from workles import WorklesBase, Route, DummyMiddleware
 from schedule import Schedule, fm
 
 def home():
     return Response('hi')
 
-def get_stops(name_index, station_name):
-    station_name = app.plugins.name_index[station_name]
-    content = pformat(app.plugins.schedule.get_stops(station_name))
+
+def get_stops(schedule, name_index, station_name):
+    station_name = name_index[station_name]
+    content = pformat(schedule.get_stops(station_name))
     return {'content': content}
 
 
@@ -45,7 +46,7 @@ def create_app(schedule_dir, template_dir, with_static=True):
     app = WorklesBase(routes, {
         'schedule': Schedule.from_directory('raw_schedules'),
         'name_index': fm
-    }, mako_response)
+    }, mako_response, [DummyMiddleware()])
     if with_static:
         app.__call__ = SharedDataMiddleware(app.__call__, {
             '/static':  os.path.join(os.path.dirname(__file__), 'static')
