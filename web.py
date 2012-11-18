@@ -12,7 +12,7 @@ from werkzeug.utils import redirect
 import mako
 from mako.lookup import TemplateLookup
 
-from workles import WorklesBase, Route, DummyMiddleware
+from workles import Application, Route, DummyMiddleware
 from schedule import Schedule, fm
 
 def home():
@@ -43,7 +43,7 @@ def create_app(schedule_dir, template_dir, with_static=True):
               Route('/<path:station_name>', get_stops, 'base.html'),
               Rule('/favicon.ico', endpoint=not_found)]
 
-    app = WorklesBase(routes, {
+    app = Application(routes, {
         'schedule': Schedule.from_directory('raw_schedules'),
         'name_index': fm
     }, mako_response, [DummyMiddleware()])
