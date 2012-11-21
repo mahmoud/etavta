@@ -31,22 +31,25 @@ def not_found(*a, **kw):
 def create_app(schedule_dir, template_dir, with_static=True):
     def mako_response(template_file):
         template_lookup = TemplateLookup(template_dir, format_exceptions=True)
-        def render_mako_response(context_dict=None, **kw):
-            context_dict = context_dict or {}
+        def render_mako_response(context=None, **kw):
+            context_dict = context or {}
             context_dict.update(kw)
 
             tmpl = template_lookup.get_template(template_file)
             return Response(tmpl.render(**context_dict), mimetype='text/html')
         return render_mako_response
 
-    routes = [Route('/', home, 'base.html'),
-              Route('/<path:station_name>', get_stops, 'base.html'),
-              Rule('/favicon.ico', endpoint=not_found)]
-
-    app = Application(routes, {
-        'schedule': Schedule.from_directory('raw_schedules'),
+    schedule = Schedule.from_directory('raw_schedules')
+    subroutes = [Route('/', home, 'base.html'),
+                 Route('/<path:station_name>', get_stops, 'base.html'),
+                 Rule('/favicon.ico', endpoint=not_found)]
+    subapp = Application(subroutes, {
+        'schedule': schedule,
         'name_index': fm
     }, mako_response, [DummyMiddleware()])
+
+    routes = [('/', subapp), ('/v2/', subapp)]
+    app = subapp #Application(routes, middlewares=[DummyMiddleware()])
     if with_static:
         app.__call__ = SharedDataMiddleware(app.__call__, {
             '/static':  os.path.join(os.path.dirname(__file__), 'static')
