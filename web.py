@@ -49,7 +49,7 @@ def create_app(schedule_dir, template_dir, with_static=True):
     }, mako_response, [DummyMiddleware()])
 
     routes = [('/', subapp), ('/v2/', subapp)]
-    app = subapp #Application(routes, middlewares=[DummyMiddleware()])
+    app = Application(routes, middlewares=[DummyMiddleware()])
     if with_static:
         app.__call__ = SharedDataMiddleware(app.__call__, {
             '/static':  os.path.join(os.path.dirname(__file__), 'static')
