@@ -3,20 +3,15 @@ from __future__ import unicode_literals
 import os
 from pprint import pformat
 
-from werkzeug.wrappers import Request, Response
-from werkzeug.routing import Map, Rule
-from werkzeug.exceptions import HTTPException, NotFound
+from werkzeug.exceptions import NotFound
 from werkzeug.wsgi import SharedDataMiddleware
-from werkzeug.utils import redirect
+from clastic import Application
+from clastic.render.mako_templates import MakoRenderFactory
 
-import mako
-from mako.lookup import TemplateLookup
-
-from workles import Application, Route, DummyMiddleware
 from schedule import Schedule, fm
 
 def home():
-    return Response('hi')
+    return {'content': 'hi'}
 
 
 def get_stops(schedule, name_index, station_name):
@@ -28,28 +23,20 @@ def get_stops(schedule, name_index, station_name):
 def not_found(*a, **kw):
     raise NotFound()
 
+
 def create_app(schedule_dir, template_dir, with_static=True):
-    def mako_response(template_file):
-        template_lookup = TemplateLookup(template_dir, format_exceptions=True)
-        def render_mako_response(context=None, **kw):
-            context_dict = context or {}
-            context_dict.update(kw)
-
-            tmpl = template_lookup.get_template(template_file)
-            return Response(tmpl.render(**context_dict), mimetype='text/html')
-        return render_mako_response
-
-    schedule = Schedule.from_directory('raw_schedules')
-    subroutes = [Route('/', home, 'base.html'),
-                 Route('/<path:station_name>', get_stops, 'base.html'),
-                 Rule('/favicon.ico', endpoint=not_found)]
+    schedule = Schedule.from_directory(schedule_dir)
+    subroutes = [('/', home, 'base.html'),
+                 ('/<path:station_name>', get_stops, 'base.html'),
+                 ('/favicon.ico', not_found)]
+    mako_response = MakoRenderFactory(template_dir)
     subapp = Application(subroutes, {
         'schedule': schedule,
         'name_index': fm
-    }, mako_response, [DummyMiddleware()])
+    }, mako_response)
 
     routes = [('/', subapp), ('/v2/', subapp)]
-    app = Application(routes, middlewares=[DummyMiddleware()])
+    app = Application(routes)
     if with_static:
         app.__call__ = SharedDataMiddleware(app.__call__, {
             '/static':  os.path.join(os.path.dirname(__file__), 'static')
@@ -58,6 +45,5 @@ def create_app(schedule_dir, template_dir, with_static=True):
 
 
 if __name__ == '__main__':
-    from werkzeug.serving import run_simple
     app = create_app('raw_schedules', './templates')
-    run_simple('127.0.0.1', 5000, app, use_debugger=True, use_reloader=True)
+    app.serve()

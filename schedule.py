@@ -475,10 +475,9 @@ class ConcreteStop(object):
         self.route = train.route
 
         st = stop.stop_time
-        offset_date = start_dt.date() - dt.timedelta(days=start_dt.weekday())
-        offset_time = dt.datetime.utcfromtimestamp(st.total_seconds()).time()
+        week_start = start_dt.date() - dt.timedelta(days=start_dt.weekday())
 
-        self.stop_time = dt.datetime.combine(offset_date, offset_time)
+        self.stop_time = dt.datetime.combine(week_start, dt.time()) + st
         self.station = stop.station
         self.dest = train.stops[-1]
         self.is_express = train.is_express
