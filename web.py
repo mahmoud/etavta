@@ -9,9 +9,10 @@ from clastic import Application
 from clastic.render.mako_templates import MakoRenderFactory
 
 from schedule import Schedule, fm
+from pprint import pformat
 
-def home():
-    return {'content': 'hi'}
+def home(schedule):
+    return {'content': pformat([s for s in schedule.stations])}
 
 
 def get_stops(schedule, name_index, station_name):
