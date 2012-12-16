@@ -45,6 +45,8 @@ def create_app(schedule_dir, template_dir, with_static=True):
     return app
 
 
+application = create_app('raw_schedules', './templates')
+
+
 if __name__ == '__main__':
-    app = create_app('raw_schedules', './templates')
-    app.serve()
+    application.serve()
