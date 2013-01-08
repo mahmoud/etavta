@@ -1,0 +1,26 @@
+{
+  "errors": {}, 
+  "finish_time": null, 
+  "pid": 23666, 
+  "schedules": [
+    "SC_900NO_SA.tdl", 
+    "SC_900NO_SU.tdl", 
+    "SC_900NO_WK.tdl", 
+    "SC_900SO_SA.tdl", 
+    "SC_900SO_SU.tdl", 
+    "SC_900SO_WK.tdl", 
+    "SC_901NO_SA.tdl", 
+    "SC_901NO_SU.tdl", 
+    "SC_901NO_WK.tdl", 
+    "SC_901SO_SA.tdl", 
+    "SC_901SO_SU.tdl", 
+    "SC_901SO_WK.tdl", 
+    "SC_902NO_SA.tdl", 
+    "SC_902NO_SU.tdl", 
+    "SC_902NO_WK.tdl", 
+    "SC_902SO_SA.tdl", 
+    "SC_902SO_SU.tdl", 
+    "SC_902SO_WK.tdl"
+  ], 
+  "start_time": "2013-01-08T01:26:48.889844"
+}

@@ -10,18 +10,8 @@ from clastic.render.mako_templates import MakoRenderFactory
 
 from schedule import Schedule, fm
 
-from tzone import Pacific
-import datetime
-
-
-def get_pacific_time(dt=None):
-    dt = dt or datetime.datetime.now(Pacific)
-    try:
-        ret = dt.astimezone(Pacific)
-    except ValueError:
-        ret = dt.replace(tzinfo=Pacific)
-    return ret
-
+from localtime import get_pacific_time
+from fetch import RAW_SCHED_DIR, get_newest_sched_dir
 
 def home(schedule):
     return {'content': pformat([s for s in schedule.stations])}
@@ -57,8 +47,10 @@ def create_app(schedule_dir, template_dir, with_static=True):
         })
     return app
 
-
-application = create_app('raw_schedules', './templates')
+sched_path = get_newest_sched_dir(RAW_SCHED_DIR)
+if not sched_path:
+    raise Exception('no schedules found')
+application = create_app(sched_path, './templates')
 
 
 if __name__ == '__main__':

@@ -1,5 +1,29 @@
 from datetime import tzinfo, timedelta, datetime
 
+# custom stuff
+
+# Note #1: the builtin .isoformat() doesn't use '%Z' and
+# .strptime() doesn't recognize '%z' in some Pythons, see:
+#   http://bugs.python.org/issue6641
+#
+# Note #2: Furthermore, Python was not recognizing '%Z' timezone names
+# either, which seems like a pretty huge bug. (I think I'm on an older 2.7)
+
+#ISO_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%Z"
+ISO_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
+
+
+
+def get_pacific_time(dt=None):
+    dt = dt or datetime.now(Pacific)
+    try:
+        ret = dt.astimezone(Pacific)
+    except ValueError:
+        ret = dt.replace(tzinfo=Pacific)
+    return ret
+
+# The rest is all from cribbed from Python docs
+
 ZERO = timedelta(0)
 HOUR = timedelta(hours=1)
 
