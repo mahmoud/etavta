@@ -1,0 +1,28 @@
+<%inherit file="base.html" />
+<%!
+  from schedule import slugify
+  from localtime import get_pacific_time
+
+  time_format = "%I:%M%p"
+%>
+<%block name="content">
+<p>Current time: ${get_pacific_time().strftime(time_format).lstrip('0').lower()}</p>
+<table border=1 cellspacing=0 bordercolor=lightgray>
+<tr><th>North</th><th>South</th></tr>
+<tr>
+  <td>
+     <table>
+     % for stop in stops['North']:
+       <tr><td>${stop.stop_time.strftime(time_format).lstrip('0').lower()}</td><td>${stop.dest.station}</td></tr>
+     % endfor
+     </table>
+  </td>
+  <td>
+     <table>
+     % for stop in stops['South']:
+       <tr><td>${stop.stop_time.strftime(time_format).lstrip('0').lower()}</td><td>${stop.dest.station}</td></tr>
+     % endfor
+     </table>
+  </td>
+</tr></table>
+</%block>

@@ -1,0 +1,64 @@
+<%inherit file="base.html" />
+<%!
+  from schedule import slugify
+%>
+<%block name="content">
+<style type="text/css">
+#station-table {
+  height: 100%;
+}
+
+#station-table table {
+  width: 100%;
+  height: 100%;
+}
+
+#station-table table td {
+  text-align: center;
+  vertical-align: top;
+}
+</style>
+<table id="station-table">
+<tr id="north-legs-tr">
+   <td>
+      <table>
+      % for station in LEGS['MOUNTAIN_VIEW'][:-1]:
+        <tr><td><a href="/${slugify(station)}">${station}</a></td></tr>
+      % endfor
+      </table>
+   </td>
+   <td>
+      <table>
+      % for station in LEGS['ALUM_ROCK'][:-1]:
+        <tr><td><a href="/${slugify(station)}">${station}</a></td></tr>
+      % endfor
+      </table>
+    </td>
+</tr>
+<tr id="middle-leg-tr">
+   <td colspan=2>
+      <table>
+      % for station in LEGS['MIDDLE']:
+        <tr><td><a href="/${slugify(station)}">${station}</a></td></tr>
+      % endfor
+      </table>
+   </td>
+</tr>
+<tr id="south-legs-tr">
+   <td>
+      <table>
+      % for station in LEGS['WINCHESTER'][1:]:
+        <tr><td><a href="/${slugify(station)}">${station}</a></td></tr>
+      % endfor
+      </table>
+   </td>
+   <td>
+      <table>
+      % for station in LEGS['SANTA_TERESA'][1:]:
+        <tr><td><a href="/${slugify(station)}">${station}</a></td></tr>
+      % endfor
+      </table>
+   </td>
+</tr>
+</table>
+</%block>
