@@ -1,2 +1,3 @@
 Mako>=0.7.3
-clastic>=0.1.4
+MarkupSafe==0.15
+clastic>=0.1.5
