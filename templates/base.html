@@ -4,6 +4,9 @@
       <title><%block name="head_title">ETAVTA</%block></title>
   </head>
   <body>
-  <pre>${content}</pre>
+  <h2 class="page_title"><%block name="page_title">ETAVTA</%block></h2>
+  <div class="content"><%block name="content" /></div>
+  <pre>${pre_content or ''}</pre>
+  <div class="footer"><%block name="footer" /></div>
   </body>
 </html>

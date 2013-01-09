@@ -38,8 +38,13 @@ _SNTTERESA_LEG = ['San Jose Convention Center', "Children's Discovery Museum",
 
 _ALMADEN_LEG = ['Ohlone/Chynoweth', 'Oakridge', 'Almaden']
 
-ALL_LEGS = (_MTNVIEW_LEG, _ALUMROCK_LEG, _MIDDLE_LEG,
-            _WINCHESTER_LEG, _SNTTERESA_LEG, _ALMADEN_LEG)
+ALL_LEGS = {'MOUNTAIN_VIEW': _MTNVIEW_LEG,
+            'ALUM_ROCK': _ALUMROCK_LEG,
+            'MIDDLE': _MIDDLE_LEG,
+            'WINCHESTER': _WINCHESTER_LEG,
+            'SANTA_TERESA': _SNTTERESA_LEG,
+            'ALMADEN': _ALMADEN_LEG}
+
 ALL_STATIONS = OrderedSet(chain.from_iterable([_MTNVIEW_LEG, _ALUMROCK_LEG,
                                                _MIDDLE_LEG, _WINCHESTER_LEG,
                                                _SNTTERESA_LEG, _ALMADEN_LEG]))
@@ -111,7 +116,7 @@ fm = FuzzyMatcher(ALL_STATIONS)
 
 
 def get_interstitial_stations(s1, s2):
-    for leg in ALL_LEGS:
+    for leg in ALL_LEGS.values():
         if s1 in leg and s2 in leg:
             s1_i, s2_i = leg.index(s1), leg.index(s2)
             if s1_i < s2_i:
