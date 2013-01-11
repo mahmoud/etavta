@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
 
-from pprint import pformat
-
 from werkzeug.exceptions import NotFound
 from clastic import Application, Middleware
 from clastic.render.mako_templates import MakoRenderFactory
@@ -52,19 +50,25 @@ class HTTPCacheMiddleware(Middleware):
                  must_revalidate=None,
                  proxy_revalidate=None,
                  public=None,
-                 private=None):
+                 private=None,
+                 use_etags=True):
         for attr in self.cache_attrs:
             setattr(self, attr, locals()[attr])
+        self.use_etags = use_etags
 
-    def request(self, next):
+    def request(self, next, request):
         resp = next()
-        if not hasattr(resp, 'cache_control'):
-            return resp
-        for attr in self.cache_attrs:
-            cache_val = getattr(self, attr, None)
-            if cache_val:
-                setattr(resp.cache_control, attr, cache_val)
+        if hasattr(resp, 'cache_control'):
+            for attr in self.cache_attrs:
+                cache_val = getattr(self, attr, None)
+                if cache_val:
+                    setattr(resp.cache_control, attr, cache_val)
+            if self.use_etags and not resp.is_streamed:
+                # TODO: do streamed responses too?
+                resp.add_etag()
+                resp.make_conditional(request)
         return resp
+
 
 from gzip import GzipFile
 from StringIO import StringIO
@@ -82,7 +86,8 @@ class GzipMiddleware(Middleware):
 
     def request(self, next, request):
         resp = next()
-        # something with Vary
+        # TODO: shortcut redirects/304s/responses without content?
+        resp.vary.add('Accept-Encoding')
         if resp.content_encoding or not request.accept_encodings['gzip']:
             return resp
 
@@ -101,8 +106,7 @@ class GzipMiddleware(Middleware):
             resp.content_length = len(comp_content)
 
         resp.content_encoding = 'gzip'
-        #if hasattr(resp, 'get_etag') and resp.get_etag()[0]:
-        #    resp.add_etag('gzip')
+        # TODO: regenerate etag?
         return resp
 
 
@@ -116,7 +120,7 @@ def create_app(schedule_dir, template_dir):
 
     mako_response = MakoRenderFactory(template_dir)
     cc_mw = HTTPCacheMiddleware(max_age=30, must_revalidate=True)
-    middlewares = [ConstantsMiddleware(**CONSTANTS), GzipMiddleware(), cc_mw]
+    middlewares = [ConstantsMiddleware(**CONSTANTS), cc_mw, GzipMiddleware()]
     subapp = Application(subroutes, resources, mako_response, middlewares)
 
     routes = [('/', subapp), ('/v2/', subapp)]
