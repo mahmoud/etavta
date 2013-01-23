@@ -15,10 +15,15 @@ def home(schedule):
     return {}
 
 
-def get_stops(schedule, name_index, station_name, start_time=None):
-    start_time = get_pacific_time(start_time)
+def parse_date_params(start_date, start_time):
+    from datetime import datetime, date, time
+    return None
+
+def get_stops(schedule, name_index, station_name, sdate=None, stime=None):
+    start_dt = parse_date_params(sdate, stime)
+    start_dt = get_pacific_time(start_dt)
     station_name = name_index[station_name]
-    stops = schedule.get_stops(station_name, start_time)
+    stops = schedule.get_stops(station_name, start_dt)
     return {'stops': stops}
 
 
