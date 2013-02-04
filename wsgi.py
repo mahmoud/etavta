@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from werkzeug.exceptions import NotFound
 from clastic import Application, Middleware
 from clastic.render.mako_templates import MakoRenderFactory
+from clastic.middleware import SimpleContextProcessor
 
 from schedule import Schedule, fm, ALL_LEGS
 
@@ -16,8 +17,24 @@ def home(schedule):
 
 
 def parse_date_params(start_date, start_time):
-    from datetime import datetime, date, time
-    return None
+    from datetime import datetime
+    now = datetime.now()
+    sdate, stime = now.date(), now.time()
+    if start_date:
+        if len(start_date) % 2 == 1:
+            start_date = '0' + start_date
+        if len(start_date) == 4:
+            sdate = sdate.replace(month=int(start_date[:2]),
+                                  day=int(start_date[2:4]))
+        elif len(start_date) == 8:
+            sdate = sdate.replace(year=int(start_date[:4]),
+                                  month=int(start_date[4:6]),
+                                  day=int(start_date[6:8]))
+    if start_time:
+        pass
+
+    return datetime.combine(sdate, stime)
+
 
 def get_stops(schedule, name_index, station_name, sdate=None, stime=None):
     start_dt = parse_date_params(sdate, stime)
@@ -29,17 +46,6 @@ def get_stops(schedule, name_index, station_name, sdate=None, stime=None):
 
 def not_found(*a, **kw):
     raise NotFound()
-
-
-class ConstantsMiddleware(Middleware):
-    def __init__(self, **kw):
-        self.constants = kw
-
-    def render(self, next, context):
-        context.update(self.constants)
-        return next()
-
-CONSTANTS = {'LEGS': ALL_LEGS}
 
 
 class HTTPCacheMiddleware(Middleware):
@@ -115,21 +121,69 @@ class GzipMiddleware(Middleware):
         return resp
 
 
+import cProfile
+from pstats import Stats
+from cStringIO import StringIO
+import sys
+
+_prof_tmpl = '<html><body><pre>%s</pre></body</html>'
+_sort_keys = {'cumulative': 'cumulative time, i.e., includes time in called functions.',
+              'file': 'source file',
+              'line': 'line number',
+              'name': 'function name',
+              'module': 'source module',
+              'nfl': 'name/file/line',
+              'pcalls': 'primitive (non-recursive) calls',
+              'stdname': 'standard name (includes path)',
+              'time': 'internal time, i.e., time in this function scope'}
+
+
+class ProfilerMiddleware(Middleware):
+    def __init__(self, sort_param_name='_prof_sort', get_param_name='_prof'):
+        self.get_param_name = get_param_name
+        self.sort_param_name = sort_param_name
+
+    def request(self, next, request):
+        if not request.args.get(self.get_param_name):
+            return next()
+        sort_param = request.args.get(self.sort_param_name, 'time')
+        if sort_param not in _sort_keys:
+            raise KeyError('%s is not a supported sort_key. choose from: %r'
+                           % (sort_param, _sort_keys))
+        profiler = cProfile.Profile()
+        try:
+            ret = profiler.runcall(next)
+        except:
+            if self.raise_exc:
+                raise
+        buff = StringIO()
+        stats = Stats(profiler, stream=buff).sort_stats(sort_param).print_stats()
+        ret.response = [_prof_tmpl % buff.getvalue()]
+        return ret
+
+
+from clastic.exceptions import make_error_handler_map
+
+err_handlers = make_error_handler_map()
+
+
 def create_app(schedule_dir, template_dir):
     schedule = Schedule.from_directory(schedule_dir)
     resources = {'schedule': schedule,
-                 'name_index': fm}
+                 'name_index': fm,
+                 'LEGS': ALL_LEGS}
     subroutes = [('/', home, 'station_list.html'),
                  ('/<path:station_name>', get_stops, 'stop_times.html'),
                  ('/favicon.ico', not_found)]
 
     mako_response = MakoRenderFactory(template_dir)
     cc_mw = HTTPCacheMiddleware(max_age=30, must_revalidate=True)
-    middlewares = [ConstantsMiddleware(**CONSTANTS), cc_mw, GzipMiddleware()]
-    subapp = Application(subroutes, resources, mako_response, middlewares)
+    middlewares = [GzipMiddleware(), ProfilerMiddleware(), SimpleContextProcessor(LEGS=ALL_LEGS), cc_mw]
+    subapp = Application(subroutes, resources, mako_response, middlewares,
+                         error_handlers=err_handlers)
 
     routes = [('/', subapp), ('/v2/', subapp)]
-    app = Application(routes)
+    app = Application(routes, error_handlers=err_handlers)
     return app
 
 sched_path = get_newest_sched_dir(RAW_SCHED_DIR)
