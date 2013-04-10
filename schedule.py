@@ -546,12 +546,12 @@ class Stop(object):
 
 
 if __name__ == '__main__':
+    import resource
+    print resource.getrusage(resource.RUSAGE_SELF)
+    import gc
+    gc.disable()
     try:
-        sched1 = Timetable.from_file('raw_schedules/SC_901NO_WK.tdl')
-        #sched2 = Timetable.from_file('raw_schedules/SC_902NO_WK.tdl')
-        #sched3 = Timetable.from_file('raw_schedules/SC_902SO_WK.tdl')
-
-        cs = Schedule.from_directory('raw_schedules')
+        cs = Schedule.from_directory('raw_schedules/20130122')
         ja_stops = cs.get_stops('Japantown/Ayer')
         first_stops = [t.stops[0] for t in cs.all_trains]
         #print comp_schedl.trains[5].stations
@@ -560,4 +560,8 @@ if __name__ == '__main__':
     except Exception as e:
         import pdb;pdb.post_mortem()
         raise
-    import pdb;pdb.set_trace()
+    else:
+        print cs
+        print resource.getrusage(resource.RUSAGE_SELF)
+    finally:
+        gc.enable()
