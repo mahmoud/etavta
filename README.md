@@ -16,6 +16,10 @@
 * Tests
 * Output schedules in a sane format for posterity
 
+### Advanced enhancements
+* Account for fewer stops during low-traffic times
+* Holiday detection (switch to sunday schedule on holidays)
+
 ## Inconsistencies in the VTA schedule format
 
 ### Timing inconsistencies
