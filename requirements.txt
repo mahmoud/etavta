@@ -1,6 +1,7 @@
+-e git+https://github.com/mahmoud/clastic.git#egg=clastic
+
 Mako==0.9.0
 MarkupSafe==0.15
-Werkzeug==0.8.3
+Werkzeug==0.9.4
 argparse==1.2.1
-clastic==0.3.0
 wsgiref==0.1.2
