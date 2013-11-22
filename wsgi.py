@@ -1,5 +1,8 @@
 from __future__ import unicode_literals
 
+import sys
+sys.path.insert(0, '../clastic')
+
 from clastic import Application
 from clastic.render.mako_templates import MakoRenderFactory
 from clastic.middleware import SimpleContextProcessor
@@ -53,7 +56,7 @@ def create_app(schedule_dir, template_dir):
                  'LEGS': ALL_LEGS}
     subroutes = [('/', home, 'station_list.html'),
                  ('/favicon.ico', lambda: NotFound()),
-                 ('/<path:station_name>', get_stops, 'stop_times.html')]
+                 ('/<station_name>', get_stops, 'stop_times.html')]
 
     mako_factory = MakoRenderFactory(template_dir)
     cc_mw = HTTPCacheMiddleware(max_age=30, must_revalidate=True)
