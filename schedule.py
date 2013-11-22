@@ -54,11 +54,14 @@ EXPRESS_NONSTOP_STATIONS = ["Children's Discovery Museum", 'Virginia',
 
 _punct_re = re.compile(r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+')
 
+
 def punct_split_lower(text):
     return [w for w in _punct_re.split(text.lower()) if w]
 
+
 def slugify(text, delim='_'):
     return unicode(delim.join(punct_split_lower(text)))
+
 
 class FuzzyMatcher(object):
     def __init__(self, candidates):
@@ -112,7 +115,7 @@ class FuzzyMatcher(object):
         return list(ret)
 
 
-fm = FuzzyMatcher(ALL_STATIONS)
+NAME_MATCHER = FuzzyMatcher(ALL_STATIONS)
 
 
 def get_interstitial_stations(s1, s2):
@@ -327,7 +330,7 @@ class Timetable(object):
                 break  # eat blank line separating station names from timetable
             s_name, _, f_name = [n.strip() for n in line.partition('\t')]
             if not s_name.startswith('LVE'):
-                station_names = fm.extended_find(f_name.strip())
+                station_names = NAME_MATCHER.extended_find(f_name.strip())
                 if not station_names or len(station_names) > 1:
                     raise ValueError('Could not find station with name: ' +
                                      f_name.strip())
