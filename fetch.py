@@ -11,7 +11,6 @@ from localtime import get_pacific_time, ISO_FORMAT, Pacific
 from schedule import Schedule
 
 FETCH_TIMEOUT = 15 # in seconds
-RAW_SCHED_DIR = 'raw_schedules'
 ROOT_WEB_ADDR = 'http://www.vta.org/schedules/tdl/'
 
 LINES = ('900', '901', '902')
@@ -20,6 +19,8 @@ DAYS = ('WK', 'SA', 'SU')
 EXTENSION = 'tdl'
 
 CUR_DIR = os.path.abspath(os.path.dirname(__file__))
+
+RAW_SCHED_DIR = os.path.join(CUR_DIR, 'raw_schedules')
 
 _DATE_DIR_FORMAT = '%Y%m%d'
 

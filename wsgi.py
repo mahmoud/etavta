@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
+import os
 import sys
-sys.path.insert(0, '../clastic')
 
 from clastic import Application
 from clastic.render.mako_templates import MakoRenderFactory
@@ -14,6 +14,9 @@ from schedule import Schedule, NAME_MATCHER, ALL_LEGS
 
 from localtime import get_pacific_time
 from fetch import RAW_SCHED_DIR, get_newest_sched_dir
+
+CUR_DIR = os.path.abspath(os.path.dirname(__file__))
+TEMPLATE_DIR = os.path.join(CUR_DIR, 'templates')
 
 
 def home(schedule):
@@ -76,7 +79,9 @@ sched_path = get_newest_sched_dir(RAW_SCHED_DIR)
 print 'loading schedules from %s...' % sched_path
 if not sched_path:
     raise Exception('no schedules found')
-application = create_app(sched_path, './templates')
+
+
+application = create_app(sched_path, TEMPLATE_DIR)
 
 
 if __name__ == '__main__':
