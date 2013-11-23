@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 import os
 import sys
 
+sys.path.insert(0, '../clastic')
+
 from clastic import Application
 from clastic.render.mako_templates import MakoRenderFactory
 from clastic.middleware import SimpleContextProcessor
@@ -25,7 +27,7 @@ def home(schedule):
 
 def parse_date_params(start_date, start_time):
     from datetime import datetime
-    now = datetime.now()
+    now = get_pacific_time()
     sdate, stime = now.date(), now.time()
     if start_date:
         if len(start_date) % 2 == 1:
