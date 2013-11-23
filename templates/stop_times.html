@@ -7,6 +7,7 @@
 %>
 <%block name="content">
 <p>Current time: ${get_pacific_time().strftime(time_format).lstrip('0').lower()}</p>
+<p>Upcoming arrivals for <em>${station_name}:</em></p>
 <table border=1 cellspacing=0 bordercolor=lightgray>
 <tr><th>North</th><th>South</th></tr>
 <tr>

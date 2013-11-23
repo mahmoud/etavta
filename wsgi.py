@@ -7,7 +7,8 @@ sys.path.insert(0, '../clastic')
 
 from clastic import Application
 from clastic.render.mako_templates import MakoRenderFactory
-from clastic.middleware import SimpleContextProcessor
+from clastic.middleware import (GetParamMiddleware,
+                                SimpleContextProcessor)
 from clastic.middleware.profile import SimpleProfileMiddleware
 from clastic.middleware.client_cache import HTTPCacheMiddleware
 from clastic.errors import NotFound
@@ -29,7 +30,7 @@ def parse_date_params(start_date, start_time):
     from datetime import datetime
     now = get_pacific_time()
     sdate, stime = now.date(), now.time()
-    if start_date:
+    try:
         if len(start_date) % 2 == 1:
             start_date = '0' + start_date
         if len(start_date) == 4:
@@ -39,9 +40,16 @@ def parse_date_params(start_date, start_time):
             sdate = sdate.replace(year=int(start_date[:4]),
                                   month=int(start_date[4:6]),
                                   day=int(start_date[6:8]))
-    if start_time:
+    except (TypeError, ValueError):
         pass
-
+    try:
+        if len(start_time) % 2 == 1:
+            start_time = '0' + start_time
+        if len(start_time) == 4:
+            stime = stime.replace(hour=int(start_time[:2]),
+                                  minute=int(start_time[2:4]))
+    except (TypeError, ValueError):
+        pass
     return datetime.combine(sdate, stime)
 
 
@@ -53,7 +61,7 @@ def get_stops(schedule, name_index, station_name, sdate=None, stime=None):
     start_dt = parse_date_params(sdate, stime)
     start_dt = get_pacific_time(start_dt)
     stops = schedule.get_stops(station_name, start_dt)
-    return {'stops': stops}
+    return {'station_name': station_name, 'stops': stops}
 
 
 def create_app(schedule_dir, template_dir):
@@ -68,6 +76,7 @@ def create_app(schedule_dir, template_dir):
     mako_factory = MakoRenderFactory(template_dir)
     cc_mw = HTTPCacheMiddleware(max_age=30, must_revalidate=True)
     middlewares = [SimpleProfileMiddleware(),
+                   GetParamMiddleware(['sdate', 'stime']),
                    SimpleContextProcessor(LEGS=ALL_LEGS),
                    cc_mw]
     app = Application(subroutes, resources, mako_factory, middlewares)
